@@ -1,4 +1,6 @@
-local _, SnugUI = ...
+local SnugUI = _G.SnugUI
+if not SnugUI then return end
+
 
 local function GetAnchorTarget()
     local anchors = SnugUI.settings.anchors
@@ -33,10 +35,16 @@ local function AnchorChatToAssignedAnchor()
         -- Edit box (Prat or default height offset)
         local offsetY = IsAddOnLoaded("Prat-3.0") and 2 or 6
         local editBox = ChatFrame1EditBox
-        editBox:ClearAllPoints()
-        editBox:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", 0, offsetY)
-        editBox:SetPoint("BOTTOMRIGHT", anchor, "TOPRIGHT", 0, offsetY)
-        editBox:SetHeight(20)
+
+        for i = 1, 10 do
+            local editbox = _G["ChatFrame"..i.."EditBox"]
+            if editbox then
+                editbox:ClearAllPoints()
+                editbox:SetPoint("BOTTOMLEFT", anchor, "TOPLEFT", 0, offsetY)
+                editbox:SetPoint("BOTTOMRIGHT", anchor, "TOPRIGHT", 0, offsetY)
+                editbox:SetHeight(20)
+            end
+        end
     end
 end
 
@@ -52,9 +60,6 @@ local function HideChatButtons()
             if bottom then bottom:Hide() end
         end
     end
-    FriendsMicroButton:Hide()
-    ChatFrameChannelButton:Hide()
-    ChatFrameMenuButton:Hide()
 end
 
 ---<===========================================================================================================>---<<AUX

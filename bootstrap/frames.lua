@@ -1,43 +1,23 @@
-local _, SnugUI = ...
+local SnugUI = _G.SnugUI
 
 ---<===================================================================================================>---<<2.1 Anchors
 ---<==============================[Creates the right and left anchor frames. They are exposed globally via their names.]
 
-local function CreateRectangle(name, parent, x, y)
-    local f = CreateFrame("Frame", name, parent or UIParent)
-    f:SetSize(SnugUI.settings.anchors.width, SnugUI.settings.anchors.height)
-    f:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
+
+local function CreateRectangle(name, parent)
+    parent = parent or UIParent
+
+    local f = CreateFrame("Frame", name, parent)
     f:SetFrameStrata("BACKGROUND")
 
-    f.bg = f:CreateTexture(nil, "BACKGROUND")
-    f.bg:SetAllPoints(true)
-    f.bg:SetColorTexture(0, 0, 0, 0.25)
-
-    local borderColor = {0, 0, 0, 1}
-
-    f.top = f:CreateTexture(nil, "BORDER")
-    f.top:SetColorTexture(unpack(borderColor))
-    f.top:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
-    f.top:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, 0)
-    f.top:SetHeight(1)
-
-    f.bottom = f:CreateTexture(nil, "BORDER")
-    f.bottom:SetColorTexture(unpack(borderColor))
-    f.bottom:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 0, 0)
-    f.bottom:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 0)
-    f.bottom:SetHeight(1)
-
-    f.left = f:CreateTexture(nil, "BORDER")
-    f.left:SetColorTexture(unpack(borderColor))
-    f.left:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0)
-    f.left:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 0, 0)
-    f.left:SetWidth(1)
-
-    f.right = f:CreateTexture(nil, "BORDER")
-    f.right:SetColorTexture(unpack(borderColor))
-    f.right:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, 0)
-    f.right:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 0)
-    f.right:SetWidth(1)
+    f:SetBackdrop({
+        bgFile   = "Interface\\Buttons\\WHITE8x8",
+        edgeFile = "Interface\\Buttons\\WHITE8x8",
+        edgeSize = 1,
+        insets   = { left = 0, right = 0, top = 0, bottom = 0 },
+    })
+    f:SetBackdropColor(0, 0, 0, 0.25)
+    f:SetBackdropBorderColor(0, 0, 0, 1)
 
     return f
 end
@@ -46,22 +26,21 @@ local function createAnchors()
     local w = SnugUI.settings.anchors.width
     local h = SnugUI.settings.anchors.height
 
-    -- Create and anchor rightAnchor (bottom right of screen)
-    SnugUI.frames.rightAnchor = CreateRectangle("SnugUIRightAnchor", UIParent) -- global exposure via name, ty blizz
-    SnugUI.frames.rightAnchor:ClearAllPoints()
-    SnugUI.frames.rightAnchor:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -1, 1)
-    SnugUI.frames.rightAnchor:SetSize(w, h)
-    SnugUI.frames.rightAnchor:EnableMouse(true)
-    SnugUI.frames.rightAnchor:SetMouseClickEnabled(false)
-
-    -- Create and anchor leftAnchor (believe it or not... bottom left of screen)
-    SnugUI.frames.leftAnchor = CreateRectangle("SnugUILeftAnchor", UIParent) -- global exposure via name
+    -- left
+    SnugUI.frames.leftAnchor = CreateRectangle("SnugUILeftAnchor", UIParent)
     SnugUI.frames.leftAnchor:ClearAllPoints()
     SnugUI.frames.leftAnchor:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 1, 1)
     SnugUI.frames.leftAnchor:SetSize(w, h)
     SnugUI.frames.leftAnchor:EnableMouse(true)
-    SnugUI.frames.leftAnchor:SetMouseClickEnabled(false)
+
+    -- right
+    SnugUI.frames.rightAnchor = CreateRectangle("SnugUIRightAnchor", UIParent)
+    SnugUI.frames.rightAnchor:ClearAllPoints()
+    SnugUI.frames.rightAnchor:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -1, 1)
+    SnugUI.frames.rightAnchor:SetSize(w, h)
+    SnugUI.frames.rightAnchor:EnableMouse(true)
 end
+
 
 local function updateAnchors()
     -- grabs settings, can add defaults
@@ -257,7 +236,7 @@ for _, label in ipairs(sidebarLabels) do
     local wrapper = CreateFrame("Frame", nil, btn)
     wrapper:SetPoint("TOPLEFT", -4, 0)
     wrapper:SetPoint("BOTTOMRIGHT", 4, 0)
-    wrapper:SetClipsChildren(true)
+    --wrapper:SetClipsChildren(true)
 
     local highlight = wrapper:CreateTexture(nil, "BACKGROUND")
     highlight:SetPoint("TOPLEFT", -20, 0)

@@ -1,20 +1,20 @@
-## Interface-Cata:     40400
-## Interface-Mists:    50500
+## Interface: 30300
 ## Title: |cff66ccffSnugUI|r
 ## Notes: A clean, focused UI enhancement addon for World of Warcraft.
 ## Author: Snugglelumps
-## Version: 1.25
+## Version: Ascension 1.0
 ## SavedVariables: SnugUISettings
 
-bootstrap/init.lua
-bootstrap/frames.lua
+bootstrap\init.lua
+bootstrap\frames.lua
+bootstrap\settings.lua
 
-modules/minimap.lua
-modules/blizzard.lua
-modules/details.lua
-modules/chat.lua
-modules/tabwords.lua
-modules/qol.lua
+modules\minimap.lua
+modules\blizzard.lua
+modules\details.lua
+modules\chat.lua
+modules\tabwords.lua
+modules\qol.lua
 
-resources/profiles.lua
+resources\profiles.lua
 main.lua

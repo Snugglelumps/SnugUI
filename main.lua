@@ -1,7 +1,13 @@
-local _, SnugUI = ...
+local SnugUI = _G.SnugUI
+
 
 SnugUISettings = SnugUISettings or {}
 SnugUI.settings = SnugUISettings
+-- Ensure the functions namespace exists so files loaded in unexpected order won't error
+-- Ensure functions namespace exists (bootstrap should normally do this)
+-- SnugUI.functions = SnugUI.functions or {}
+
+
 
 ---<==========================================================================================>---<<3.1 Reload Indicator
 function SnugUI.functions.reloadUIRequest()
@@ -141,66 +147,47 @@ local function initAnchorAssignments()
 end
 
 ---<==========================================================================================>---<<3.4 Minimap Settings
-local minimapStyleOptions = { "SnugUI", "Blizzard" }
 
-local function initMinimapSettingsPanel()
-    local panel = SnugUI.panels.minimap
 
-    -- Lock Tracker Checkbox
-    local lockLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    lockLabel:SetPoint("TOPLEFT", 24, -110)
-    lockLabel:SetText("Lock Tracker")
+-- local function initMinimapSettingsPanel()
+--     local panel = SnugUI.panels.minimap
 
-    local lockCheckbox = CreateFrame("CheckButton", nil, panel, "ChatConfigCheckButtonTemplate")
-    lockCheckbox:SetPoint("LEFT", lockLabel, "RIGHT", 8, 0)
-    lockCheckbox:SetChecked(SnugUI.settings.minimap.lockTracker)
-    lockCheckbox:SetScript("OnClick", function(self)
-        SnugUI.settings.minimap.lockTracker = self:GetChecked()
-        SnugUI.functions.reloadUIRequest()
-    end)
+--     SnugUI.settings.testSlider = SnugUI.settings.testSlider or 1
 
-    -- Scale Slider
-    local sliderLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    sliderLabel:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -100, -90)
-    sliderLabel:SetText("Minimap Scale")
+--     local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+--     label:SetPoint("TOPLEFT", 24, -90)
+--     label:SetText("Minimap Scale")
 
-    local scaleSlider = CreateFrame("Slider", nil, panel, "OptionsSliderTemplate")
-    scaleSlider:SetOrientation("HORIZONTAL")
-    scaleSlider:SetSize(150, 15)
-    scaleSlider:SetPoint("TOPLEFT", sliderLabel, "BOTTOMLEFT", 0, -6)
-    scaleSlider:SetMinMaxValues(0.7750, 1.9625)
-    scaleSlider:SetValueStep(0.00625)
-    scaleSlider:SetObeyStepOnDrag(true)
-    scaleSlider:SetValue(SnugUI.settings.minimap.scale)
+--     local slider = CreateFrame("Slider", nil, panel)
+--     slider:SetOrientation("HORIZONTAL")
+--     slider:SetSize(200, 16)
+--     slider:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -10)
+--     slider:SetMinMaxValues(0.7750, 1.9625)
+--     slider:SetValueStep(0.00625)
+--     slider:SetValue(SnugUI.settings.minimap.scale)
+--     slider:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Horizontal")
 
-    scaleSlider:SetScript("OnValueChanged", function(self, value)
-        SnugUI.settings.minimap.scale = value
-        SnugUI.functions.applyMinimapScale()
-    end)
-    local styleSlider = CreateFrame("Slider", "SnugUI_MinimapScaleSlider", SnugUI.panels.minimap, "OptionsSliderTemplate")
-    styleSlider.Low :SetText("SnugUI")
-    styleSlider.High:SetText("Blizzard")
-    styleSlider:SetMinMaxValues(0, 1)
-    styleSlider:SetValueStep(1)
-    styleSlider:SetObeyStepOnDrag(true)
-    styleSlider:SetWidth(200)
-    styleSlider:SetHeight(20)
-    styleSlider:SetPoint("TOP", SnugUI.panels.minimap, "TOP", 0, -30)
-    if SnugUI.settings.minimap.style == "SnugUI" then styleSlider:SetValue(0) else styleSlider:SetValue(1) end
-    styleSlider:HookScript("OnMouseUp", function(self)
-        local value = self:GetValue()
-        if value == 0 then
-            SnugUI.settings.minimap.style = "SnugUI"
-        else
-            SnugUI.settings.minimap.style = "Blizzard"
-        end
-    end)
+--     local track = slider:CreateTexture(nil, "BACKGROUND")
+--     track:SetPoint("LEFT", slider, "LEFT", 16, 0)
+--     track:SetPoint("RIGHT", slider, "RIGHT", -16, 0)
+--     track:SetHeight(6)
+--     track:SetTexture(0.3, 0.3, 0.3, 0.8)
 
-    -- Label above the thumb
-    local label = _G[styleSlider:GetName() .. "Text"]
-    label:SetText("Minimap Style")
-    label:SetJustifyH("LEFT")
-end
+--     local valueText = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+--     valueText:SetPoint("TOPLEFT", slider, "BOTTOMLEFT", 0, -8)
+--     valueText:SetText("Value: " .. SnugUI.settings.testSlider)
+
+--     slider:SetScript("OnValueChanged", function(self, value)
+--         local step = 0.00625
+--         value = math.floor(value / step + 0.5) * step
+--         SnugUI.settings.minimap.scale = value
+--         MinimapCluster:SetScale(value)
+--         valueText:SetText("Value: " .. value)
+--         print(string.format("scale = %.5f", value))
+
+--     end)
+-- end
+
 
 ---<=============================================================================================>---<<3.5 Chat Settings
 local tabOptions = { "SnugUI", "Blizzard" }
@@ -380,7 +367,7 @@ SnugUI.loginTrigger(function()
 end)
 
 SnugUI.buttons.apply:SetScript("OnClick", function()
-    for _, func in ipairs(SnugUI.commitRegistry) do
+    for _, func in pairs(SnugUI.commitRegistry) do
         if type(func) == "function" then
             pcall(func)
         end
@@ -426,69 +413,69 @@ missionStatement:SetText("SnugUI is a lightweight UI style that brings everythin
 local recAddons = CreateAboutLine("Recommended", "GameFontNormal", nil, 32, -96)
 local recAddons = CreateAboutLine("Addons", "GameFontNormal", nil, 75, -112)
 
-local function CreateThanksEntry(parent, x, y, name, author, url)
-    local label = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOPLEFT", x, y)
-    label:SetText("|cffffffff•|r |cff00ccff" .. name .. "|r by " .. author)
+-- local function CreateThanksEntry(parent, x, y, name, author, url)
+--     local label = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+--     label:SetPoint("TOPLEFT", x, y)
+--     label:SetText("|cffffffff•|r |cff00ccff" .. name .. "|r by " .. author)
 
-    local editBox = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
-    editBox:SetSize(320, 18)
-    editBox:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 13, 4)
-    editBox:SetText(url)
-    editBox:SetAutoFocus(false)
-    editBox:SetScript("OnEscapePressed", editBox.ClearFocus)
-    editBox:SetScript("OnEditFocusGained", function(self)
-        self:HighlightText()
-    end)
+--     local editBox = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
+--     editBox:SetSize(320, 18)
+--     editBox:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 13, 4)
+--     editBox:SetText(url)
+--     editBox:SetAutoFocus(false)
+--     editBox:SetScript("OnEscapePressed", editBox.ClearFocus)
+--     editBox:SetScript("OnEditFocusGained", function(self)
+--         self:HighlightText()
+--     end)
 
-    editBox.Left:Hide()
-    editBox.Middle:Hide()
-    editBox.Right:Hide()
-    editBox:SetFontObject("GameFontHighlightSmall")
+--     editBox.Left:Hide()
+--     editBox.Middle:Hide()
+--     editBox.Right:Hide()
+--     editBox:SetFontObject("GameFontHighlightSmall")
 
-    return label, editBox
-end
+--     return label, editBox
+-- end
 
-CreateThanksEntry(panel, 148, -96, "Masque", "StormFX", "https://www.curseforge.com/wow/addons/masque")
-CreateThanksEntry(panel, 148, -128, "Masque_SnugUI", "Snugglelumps", "https://www.curseforge.com/wow/addons/masque_SnugUI")
-CreateThanksEntry(panel, 148, -160, "Details! Damage Meter", "Tercioo", "https://www.curseforge.com/wow/addons/details")
-CreateThanksEntry(panel, 148, -192, "Prat 3.0", "sylvanaar", "https://www.curseforge.com/wow/addons/prat-3-0")
+--CreateThanksEntry(panel, 148, -96, "Masque", "StormFX", "https://www.curseforge.com/wow/addons/masque")
+--CreateThanksEntry(panel, 148, -128, "Masque_SnugUI", "Snugglelumps", "https://www.curseforge.com/wow/addons/masque_SnugUI")
+--CreateThanksEntry(panel, 148, -160, "Details! Damage Meter", "Tercioo", "https://www.curseforge.com/wow/addons/details")
+--CreateThanksEntry(panel, 148, -192, "Prat 3.0", "sylvanaar", "https://www.curseforge.com/wow/addons/prat-3-0")
 
-local specialThanks = CreateAboutLine("Special Thanks", "GameFontNormal", nil, 33, -232)
+-- local specialThanks = CreateAboutLine("Special Thanks", "GameFontNormal", nil, 33, -232)
 
-local function CreateSpecialEntry(parent, x, y, name, author, url)
-    local label = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    label:SetPoint("TOPLEFT", x, y)
-    label:SetText("|cffffffff•|r |cff00ccff" .. name .. "|r by " .. author)
+-- local function CreateSpecialEntry(parent, x, y, name, author, url)
+--     local label = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+--     label:SetPoint("TOPLEFT", x, y)
+--     label:SetText("|cffffffff•|r |cff00ccff" .. name .. "|r by " .. author)
 
-    local editBox = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
-    editBox:SetSize(320, 18)
-    editBox:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 13, 4)
-    editBox:SetText(url)
-    editBox:SetAutoFocus(false)
-    editBox:SetScript("OnEscapePressed", editBox.ClearFocus)
-    editBox:SetScript("OnEditFocusGained", function(self)
-        self:HighlightText()
-    end)
+--     local editBox = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
+--     editBox:SetSize(320, 18)
+--     editBox:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 13, 4)
+--     editBox:SetText(url)
+--     editBox:SetAutoFocus(false)
+--     editBox:SetScript("OnEscapePressed", editBox.ClearFocus)
+--     editBox:SetScript("OnEditFocusGained", function(self)
+--         self:HighlightText()
+--     end)
 
-    editBox.Left:Hide()
-    editBox.Middle:Hide()
-    editBox.Right:Hide()
-    editBox:SetFontObject("GameFontHighlightSmall")
+--     editBox.Left:Hide()
+--     editBox.Middle:Hide()
+--     editBox.Right:Hide()
+--     editBox:SetFontObject("GameFontHighlightSmall")
 
-    return label, editBox
-end
+--     return label, editBox
+-- end
 
-CreateSpecialEntry(panel, 148, -232, "DevTool", "brittyazel", "https://github.com/brittyazel")
-CreateSpecialEntry(panel, 148, -264, "TextureAtlasViewer", "LanceDH", "https://github.com/LanceDH")
+-- CreateSpecialEntry(panel, 148, -232, "DevTool", "brittyazel", "https://github.com/brittyazel")
+-- CreateSpecialEntry(panel, 148, -264, "TextureAtlasViewer", "LanceDH", "https://github.com/LanceDH")
 
-local thankyou = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-thankyou:SetPoint("TOPLEFT", 16, -306)
-thankyou:SetWidth(440) -- or however wide your about panel is
-thankyou:SetJustifyH("LEFT")
-thankyou:SetJustifyV("TOP")
-thankyou:SetTextColor(1, 1, 1)
-thankyou:SetText("And a general thanks to all of you who take the time to build something for the game you love (and leave helpful comments). This is the first time I have tried anything like this, without the vast endeavors of this community I would not have made it very far. --|cff00ccffSnugglelumps|r")
+-- local thankyou = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+-- thankyou:SetPoint("TOPLEFT", 16, -306)
+-- thankyou:SetWidth(440) -- or however wide your about panel is
+-- thankyou:SetJustifyH("LEFT")
+-- thankyou:SetJustifyV("TOP")
+-- thankyou:SetTextColor(1, 1, 1)
+-- thankyou:SetText("And a general thanks to all of you who take the time to build something for the game you love (and leave helpful comments). This is the first time I have tried anything like this, without the vast endeavors of this community I would not have made it very far. --|cff00ccffSnugglelumps|r")
 
 ---<=======================================================================================================>---<<3.9 QOL
 
@@ -549,5 +536,5 @@ SnugUI.loginTrigger(function()
     setWAExportBox()
     createQuestButton()
     createQuestHotkey()
-    initMinimapSettingsPanel()
+    -- initMinimapSettingsPanel()
 end)

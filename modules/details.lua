@@ -1,4 +1,5 @@
-local _, SnugUI = ...
+local SnugUI = _G.SnugUI
+
 
 local function GetAnchorTarget()
     local anchors = SnugUI.settings.anchors

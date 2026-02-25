@@ -1,4 +1,5 @@
-local _, SnugUI = ...
+local SnugUI = _G.SnugUI
+
 
 local questButtonParent = CreateFrame("Frame", "QuestButtonFrame", UIParent, "BackdropTemplate")
 questButtonParent:SetSize(44, 44)

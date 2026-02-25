@@ -1,33 +1,16 @@
-local _, SnugUI = ...
+local SnugUI = _G.SnugUI
 
-SnugUI.frames.minimapBorder = CreateFrame("Frame", nil, Minimap, "BackdropTemplate")
+local moduleName = "minimap"
+
+
 local function SnugUIMinimap()
     local toHide = {
             MinimapBorder,
             MinimapBorderTop,
-            MinimapZoneTextButton,
-            MinimapZoneText,
-            MinimapZoomIn,
-            MinimapZoomOut,
-            MiniMapTrackingButtonBorder,
-            MiniMapTrackingBackground,
-            MiniMapWorldMapButton, -- id like to make this as setting, but its just SOOOO ugly. maybe ill rebuild it.
         }
     for _, frame in ipairs(toHide) do
         if frame then frame:Hide() end
     end
-    -- Remove clocks background textures
-    for i = 1, TimeManagerClockButton:GetNumRegions() do
-        local region = select(i, TimeManagerClockButton:GetRegions())
-        if region and region:GetObjectType() == "Texture" then
-            region:SetTexture(nil)
-        end
-    end
-
-    C_Timer.After(1, function()
-        MiniMapWorldMapButton:Hide() -- the only frame that needs a delay...
-    end)
-
     -- Add a 1px black border around the minimap
     Minimap:SetMaskTexture("Interface\\Buttons\\WHITE8x8")
     local border = CreateFrame("Frame", nil, Minimap, "BackdropTemplate")
@@ -38,93 +21,184 @@ local function SnugUIMinimap()
         edgeSize = 0.5,
     })
     border:SetBackdropBorderColor(0, 0, 0, 1)
-    border:SetFrameStrata("LOW")
+    border:SetFrameStrata("BACKGROUND")
     border:Show()
 
-    --#fuckthecluster
-    WatchFrame:ClearAllPoints()
-    WatchFrame:SetPoint("TOP", Minimap, "BOTTOMRIGHT", 0, -25)
-    WatchFrame:SetClampedToScreen(true)
-    BuffFrame:ClearAllPoints()
-    BuffFrame:SetPoint("RIGHT", Minimap, "TOPLEFT", -25, -25)
-    if GameTimeFrame then
-        GameTimeFrame:ClearAllPoints()
-        GameTimeFrame:SetPoint("TOPRIGHT", Minimap, "TOPRIGHT", 0, 0)
 
-        local scale = tonumber(SnugUI.settings.minimap.scale) or 1
-        local size = scale * 0.45
-        if GameTimeFrame:GetScale() ~= size then
-            GameTimeFrame:SetScale(size)
-        end
-    end
-    if TimeManagerClockButton then
-    TimeManagerClockButton:ClearAllPoints()
-    TimeManagerClockButton:SetPoint("BOTTOMLEFT", Minimap, "BOTTOMLEFT", -15, -8)
-    end
-    if MiniMapTracking then
-        MiniMapTracking:ClearAllPoints()
-        MiniMapTracking:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMRIGHT", 6, -7)
-    end
-    -- the math here is kinda random. the intent was to derive the width of the negative space around the
-    -- minimap as it scales, and use that to calculate our offsets. the scaling is a bit of a black box to
-    -- me, for now ive settled on some random numbers doing the job. if you know the answer hmu.
+    ConsolidatedBuffs:SetParent(MinimapCluster)
+    ConsolidatedBuffs:ClearAllPoints()
+    ConsolidatedBuffs:SetPoint("TOPRIGHT", Minimap, "TOPLEFT", -25, 0)
+  
     offset = -math.abs(30 - ( 8 * SnugUI.settings.minimap.scale)  )
     Minimap:ClearAllPoints()
     Minimap:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", offset, offset)
     Minimap:SetClampedToScreen(false)
 end
 
+
 local function blizzardMinimap()
-    Minimap:SetMaskTexture("interface\\masks\\circlemaskscalable")
+    Minimap:SetMaskTexture("Textures\\MinimapMask")
 end
 
+
 function applyMinimapStyle()
-    if SnugUI.settings.minimap.style == "SnugUI" then
+    if SnugUI.settings[moduleName].style == "SnugUI" then
+        print("Applying SnugUI minimap style")
         SnugUIMinimap()
     end
-    if SnugUI.settings.minimap.style == "Blizzard" then
+    if SnugUI.settings[moduleName].style == "Blizzard" then
+        print("Applying Blizzard minimap style")
         blizzardMinimap()
     end
 end
 
+
 local previousScale
-SnugUI.functions.applyMinimapScale = function() -- in namespace for "OnValueChanged" slider in main.lua
+local function applyMinimapScale()
     local currentScale = SnugUI.settings.minimap.scale
     if previousScale == currentScale then return end
-        MinimapCluster:SetScale(currentScale)
+        -- MinimapCluster exists in some clients; fall back to Minimap if not present
+        if MinimapCluster and type(MinimapCluster.SetScale) == "function" then
+            MinimapCluster:SetScale(currentScale)
+        elseif Minimap and type(Minimap.SetScale) == "function" then
+            Minimap:SetScale(currentScale)
+        else
+            print("SnugUI: unable to apply minimap scale - no known minimap cluster object")
+        end
     previousScale = currentScale
+    -- print("Applied minimap scale: "..tostring(currentScale))
 end
 
-local function lockMinimapTracker()
-    if MiniMapTrackingIcon then
-        MiniMapTrackingIcon:SetTexture(136460)
-        local inHook = false
-        hooksecurefunc(MiniMapTrackingIcon, "SetTexture", function(self, texture)
-            if inHook then return end  -- Prevent recursion
-            if texture ~= 136460 then
-                inHook = true
-                self:SetTexture(136460)
-                inHook = false
+local function makeAnchorFrame()
+    if not SnugUI.settings[moduleName].anchorMinimapButtons then return end
+    local f = CreateFrame("Frame", "SnugUIMinimapButtonAnchor", UIParent)
+    
+    if SnugUI.settings[moduleName].MMButtAnchor then
+        f:SetWidth(10)
+        f:SetPoint("TOPRIGHT", Minimap, "TOPLEFT", 0, 0)
+        f:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMLEFT", 0, 0)
+    else
+        f:SetHeight(10)
+        f:SetPoint("TOPLEFT", Minimap, "BOTTOMLEFT", 0, 0)
+        f:SetPoint("TOPRIGHT", Minimap, "BOTTOMRIGHT", 0, 0)
+    end
+
+    f:SetFrameStrata("BACKGROUND")
+
+    local t = f:CreateTexture(nil, "BACKGROUND")
+    t:SetAllPoints()
+    t:SetColorTexture(1, 0, 0, 1)
+end
+
+local function CollectMinimapButtons()
+    local buttons = {}
+
+    local f = EnumerateFrames()
+    while f do
+        local name = f:GetName()
+        if name and (name:match("^Lib") or name:match("^pfBr")) then
+            local p = f:GetParent()
+            if p == Minimap then
+                buttons[#buttons + 1] = f  -- store the frame, not just the name
             end
-        end)
+        end
+        f = EnumerateFrames(f)
+    end
+
+    return buttons
+end
+
+local function ReanchorButtons()
+    if not SnugUI.settings[moduleName].anchorMinimapButtons then return end
+
+    local buttons = CollectMinimapButtons()
+    local anchor = SnugUIMinimapButtonAnchor -- use frame ref
+
+    if SnugUI.settings[moduleName].MMButtAnchor then
+        -- vertical stack (upwards from anchor bottom-left)
+        for i = 1, #buttons do
+            local b = buttons[i]
+            b:ClearAllPoints()
+            b:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, (i - 1) * 26)
+        end
+    else
+        -- horizontal row (rightwards from anchor bottom-left)
+        for i = 1, #buttons do
+            local b = buttons[i]
+            b:ClearAllPoints()
+            b:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", (i - 1) * 26, 0)
+        end
     end
 end
 
+
+local function makeSettings()
+    SnugUI.api.generateSettingsUI(moduleName, "Minimap", {
+        title = "Minimap",
+        message = "Customize the appearance and behavior of the minimap.",
+    })
+
+    SnugUI.api.addSetting(moduleName, "style", "dropdown", {
+        default = "SnugUI",
+        label = "Minimap style",
+        options = { 
+            {value="SnugUI", text="SnugUI"}, 
+            {value="Blizzard", text="Blizzard"}, 
+        },
+        layout = {
+            col = 1,
+            row = 1,
+            width = 100,
+        }
+    })
+
+    SnugUI.api.addSetting(moduleName, "scale", "slider", {
+        default = 1,
+        label = "Minimap Scale",
+        min_label = "Min",
+        max_label = "Max",
+        min = 0.5,
+        max = 2,
+        step = 0.01,
+        updateFunc = applyMinimapScale,
+        layout = {
+            col = 3,
+            row = 1,
+            --width = 140,
+        }
+    })
+
+    SnugUI.api.addSetting(moduleName, "anchorMinimapButtons", "checkbox", {
+        default = false,
+        label = "Clamp minimap buttons to edge",
+        updateFunc = makeAnchorFrame,
+        layout = {
+            col = 2,
+            row = 2,
+        }
+     })
+
+     SnugUI.api.addSetting(moduleName, "MMButtAnchor", "radio", {
+        default = false,
+        label = "...and on what edge?",
+        options = {
+            {value=false, text="Bottom"},
+            {value=true, text="Left"},
+        },
+        layout = {
+            col = 2,
+            row = 3,
+        }
+     })
+    SnugUI.api.renderSettings(moduleName)
+end
 ---<===========================================================================================================>---<<AUX
 SnugUI.loginTrigger(function()
     applyMinimapStyle()
-    SnugUI.functions.applyMinimapScale()
-    table.insert(SnugUI.commitRegistry, function()
-        SnugUI.functions.applyMinimapScale()
-    end)
-    local f = CreateFrame("Frame")
-    f:RegisterEvent("PLAYER_ENTERING_WORLD")
-    f:SetScript("OnEvent", function()
-        MiniMapWorldMapButton:Hide() -- aaaand agian, this frame, Im telling you
-    end)
-end)
-
-SnugUI.loginTrigger(function()
-    if not SnugUI.settings.minimap.lockTracker then return end
-    lockMinimapTracker()
+    SnugUI.commitRegistry["applyMinimapScale"] = function()
+        applyMinimapScale()
+    end
+    makeSettings()
+    makeAnchorFrame()
+    ReanchorButtons()
 end)

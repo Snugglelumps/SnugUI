@@ -91,42 +91,16 @@ function SnugUI.loginTrigger(callback)
     table.insert(loginTriggerQueue, callback)
 end
 
-SLASH_SNUGWHO1 = "/swho"
-SlashCmdList.SNUGWHO = function()
-    local f = GetMouseFocus()
-    if not f then
-        print("no focus")
-        return
-    end
-
-    print("focus:", f:GetName())
-
-    -- Parent chain
-    local p = f
-    while p do
-        print("  parent:", p:GetName())
-        p = p:GetParent()
-    end
-
-    -- Anchor info
-    if f.GetNumPoints then
-        local n = f:GetNumPoints()
-        for i = 1, n do
-            local point, relTo, relPoint, x, y = f:GetPoint(i)
-            print(
-                "  point", i,
-                "point=", point,
-                "relTo=", relTo and relTo:GetName() or "nil",
-                "relPoint=", relPoint,
-                "x=", x,
-                "y=", y
-            )
-        end
-    end
-    print("BuffFrame Stuff-------------------------")
-    local p, rel, rp, x, y = BuffFrame:GetPoint(1)
-    print("BuffFrame point:", p, "relName:", rel and rel:GetName(), "rel:", rel, "relPoint:", rp, x, y)
-end
+-- local loginFrame = CreateFrame("Frame")
+-- loginFrame:RegisterEvent("PLAYER_LOGIN")
+-- loginFrame:SetScript("OnEvent", function(self)
+--     for _, fn in ipairs(loginTriggerQueue) do
+--         pcall(fn)
+--     end
+--     wipe(loginTriggerQueue)
+--     self:UnregisterAllEvents()
+--     self:SetScript("OnEvent", nil)
+-- end)
 
 local loginFrame = CreateFrame("Frame")
 loginFrame:RegisterEvent("PLAYER_LOGIN")
@@ -142,27 +116,27 @@ loginFrame:SetScript("OnEvent", function(self)
     self:SetScript("OnEvent", nil)
 end)
 
--- function SnugUI.functions.debugNamespace()
---     if not SnugUI.settings or not SnugUI.settings.debug then return end
+function SnugUI.functions.debugNamespace()
+    if not SnugUI.settings or not SnugUI.settings.debug then return end
 
---     print("=========== SnugUI Namespace ===========")
+    print("=========== SnugUI Namespace ===========")
 
---     for key, value in pairs(SnugUI) do
---         local valueType = type(value)
---         if valueType == "function" then
---             print("🧠 function:", key)
---         elseif valueType == "table" then
---             print("📦 table:", key)
---         else
---             print("🔹", key, "=", tostring(value))
---         end
---     end
+    for key, value in pairs(SnugUI) do
+        local valueType = type(value)
+        if valueType == "function" then
+            print("🧠 function:", key)
+        elseif valueType == "table" then
+            print("📦 table:", key)
+        else
+            print("🔹", key, "=", tostring(value))
+        end
+    end
 
---     print("=========== end ===========")
--- end
+    print("=========== end ===========")
+end
 
--- SnugUI.loginTrigger(function()
---     C_Timer.After(3, function()
---         SnugUI.functions.debugNamespace()
---     end)
--- end)
+SnugUI.loginTrigger(function()
+    C_Timer.After(3, function()
+        SnugUI.functions.debugNamespace()
+    end)
+end)

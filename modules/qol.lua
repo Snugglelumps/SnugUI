@@ -1,5 +1,8 @@
+-- Ive done some cool shit in my life.. this tho.. this im ashamed of. it #works, for now i guess.
+
 local SnugUI = _G.SnugUI
 
+local moduleName = "qol"
 
 local questButtonParent = CreateFrame("Frame", "QuestButtonFrame", UIParent, "BackdropTemplate")
 questButtonParent:SetSize(44, 44)
@@ -98,30 +101,66 @@ function SnugUI.functions.updateQuestItemButtons()
     isUpdatingQuestButtons = false
 end
 
+function ensureAutoLootOn()
+    if not GetCVarBool("autoLootDefault") then
+        SetCVar("autoLootDefault", 1)
+    end
+end
+
+local function makeSettings()
+    SnugUI.api.generateSettingsUI(moduleName, "Quality of Life", {
+        title = "Quality of Life Improvements",
+        message = "These settings adjust various aspects of the user interface to improve quality of life. Like everything I write, its probably wrong and bound to break, so... fair warning I guess",
+    })
+    SnugUI.api.addSetting(moduleName, "questButton", "checkbox", {
+        default = false,
+        label = "Use SnugUI quest item buttons",
+        layout = {
+            col = 1,
+            row = 1,
+        },
+        updateFunc = function()
+            SnugUI.functions.updateQuestItemButtons()
+        end,
+    })
+    SnugUI.api.addSetting(moduleName, "questHotkey", "editbox", {
+        default = "G",
+        label = "Hotkey for quest item button",
+        valueType = "string",
+        maxLetters = 1,
+        layout = {
+            col = 1,
+            row = 2,
+            width = 30,
+            rowPitch = 35,
+        },
+        updateFunc = function()
+            SnugUI.functions.updateQuestItemButtons()
+        end,
+    })
+    SnugUI.api.addSetting(moduleName, "autoautoloot", "checkbox", {
+        default = true,
+        label = "Auto loot automatically enabled",
+        layout = {
+            col = 1,
+            row = 3,
+        },
+        reloadWarning = true,
+    })
+    SnugUI.api.renderSettings(moduleName)
+end
+
+
+
+
+
+
+
 SnugUI.loginTrigger(function()
+    makeSettings()
     if not SnugUI.settings.qol.questButton then return end
-
-    -- Register for relevant events (redundant with WatchFrame_Update, so comment out for testing)
-    -- local eventFrame = CreateFrame("Frame")
-    -- local events = {
-    --     "QUEST_LOG_UPDATE",
-    --     "QUEST_WATCH_UPDATE",
-    --     "QUEST_ACCEPTED",
-    --     "QUEST_REMOVED",
-    --     "ZONE_CHANGED",
-    --     "ZONE_CHANGED_INDOORS",
-    --     "ZONE_CHANGED_NEW_AREA",
-    --     "PLAYER_ENTERING_WORLD",
-    -- }
-    -- for _, event in ipairs(events) do
-    --     eventFrame:RegisterEvent(event)
-    -- end
-    -- eventFrame:SetScript("OnEvent", function()
-    --     SnugUI.functions.updateQuestItemButtons()
-    -- end)
-
-    -- Hook WatchFrame_Update globally
     hooksecurefunc("WatchFrame_Update", function()
         SnugUI.functions.updateQuestItemButtons()
     end)
+    ensureAutoLootOn()
 end)

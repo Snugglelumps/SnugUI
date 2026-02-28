@@ -2,6 +2,12 @@ local SnugUI = _G.SnugUI
 
 local moduleName = "minimap"
 
+local function anchorBuffs()
+    ConsolidatedBuffs:SetParent(MinimapCluster)
+    ConsolidatedBuffs:ClearAllPoints()
+    ConsolidatedBuffs:SetPoint("TOPRIGHT", Minimap, "TOPLEFT", -40, 0)
+end
+
 
 local function SnugUIMinimap()
     local toHide = {
@@ -23,31 +29,27 @@ local function SnugUIMinimap()
     border:SetBackdropBorderColor(0, 0, 0, 1)
     border:SetFrameStrata("BACKGROUND")
     border:Show()
-
-
-    ConsolidatedBuffs:SetParent(MinimapCluster)
-    ConsolidatedBuffs:ClearAllPoints()
-    ConsolidatedBuffs:SetPoint("TOPRIGHT", Minimap, "TOPLEFT", -25, 0)
   
-    offset = -math.abs(30 - ( 8 * SnugUI.settings.minimap.scale)  )
-    Minimap:ClearAllPoints()
-    Minimap:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", offset, offset)
-    Minimap:SetClampedToScreen(false)
+    -- offset = -math.abs(30 - ( 8 * SnugUI.settings.minimap.scale)  )
+    -- Minimap:ClearAllPoints()
+    -- Minimap:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", offset, offset)
+    -- Minimap:SetClampedToScreen(false)
+
+    anchorBuffs()
 end
 
 
 local function blizzardMinimap()
     Minimap:SetMaskTexture("Textures\\MinimapMask")
+    anchorBuffs()
 end
 
 
 function applyMinimapStyle()
     if SnugUI.settings[moduleName].style == "SnugUI" then
-        print("Applying SnugUI minimap style")
         SnugUIMinimap()
     end
     if SnugUI.settings[moduleName].style == "Blizzard" then
-        print("Applying Blizzard minimap style")
         blizzardMinimap()
     end
 end
@@ -66,7 +68,6 @@ local function applyMinimapScale()
             print("SnugUI: unable to apply minimap scale - no known minimap cluster object")
         end
     previousScale = currentScale
-    -- print("Applied minimap scale: "..tostring(currentScale))
 end
 
 local function makeAnchorFrame()
@@ -78,7 +79,7 @@ local function makeAnchorFrame()
         f:SetPoint("TOPRIGHT", Minimap, "TOPLEFT", 0, 0)
         f:SetPoint("BOTTOMRIGHT", Minimap, "BOTTOMLEFT", 0, 0)
     else
-        f:SetHeight(10)
+        f:SetHeight(24)
         f:SetPoint("TOPLEFT", Minimap, "BOTTOMLEFT", 0, 0)
         f:SetPoint("TOPRIGHT", Minimap, "BOTTOMRIGHT", 0, 0)
     end
@@ -87,7 +88,7 @@ local function makeAnchorFrame()
 
     local t = f:CreateTexture(nil, "BACKGROUND")
     t:SetAllPoints()
-    t:SetColorTexture(1, 0, 0, 1)
+    -- t:SetColorTexture(1, 0, 0, 1)
 end
 
 local function CollectMinimapButtons()
@@ -105,6 +106,7 @@ local function CollectMinimapButtons()
         f = EnumerateFrames(f)
     end
 
+    if MiniMapTracking then table.insert(buttons, 1, MiniMapTracking) end -- should probably reorder, but whatevs
     return buttons
 end
 
@@ -119,14 +121,14 @@ local function ReanchorButtons()
         for i = 1, #buttons do
             local b = buttons[i]
             b:ClearAllPoints()
-            b:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, (i - 1) * 26)
+            b:SetPoint("CENTER", anchor, "BOTTOMLEFT", 0, (i - 1) * 26)
         end
     else
         -- horizontal row (rightwards from anchor bottom-left)
         for i = 1, #buttons do
             local b = buttons[i]
             b:ClearAllPoints()
-            b:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", (i - 1) * 26, 0)
+            b:SetPoint("CENTER", anchor, "BOTTOMLEFT", (i - 1) * 26, 0)
         end
     end
 end
@@ -149,7 +151,8 @@ local function makeSettings()
             col = 1,
             row = 1,
             width = 100,
-        }
+        },
+        reloadWarning = true,
     })
 
     SnugUI.api.addSetting(moduleName, "scale", "slider", {
@@ -171,11 +174,11 @@ local function makeSettings()
     SnugUI.api.addSetting(moduleName, "anchorMinimapButtons", "checkbox", {
         default = false,
         label = "Clamp minimap buttons to edge",
-        updateFunc = makeAnchorFrame,
         layout = {
-            col = 2,
+            col = 1,
             row = 2,
-        }
+        },
+        reloadWarning = true,
      })
 
      SnugUI.api.addSetting(moduleName, "MMButtAnchor", "radio", {
@@ -186,19 +189,22 @@ local function makeSettings()
             {value=true, text="Left"},
         },
         layout = {
-            col = 2,
+            col = 1,
             row = 3,
+            rowPitch = 45,
         }
      })
     SnugUI.api.renderSettings(moduleName)
 end
 ---<===========================================================================================================>---<<AUX
 SnugUI.loginTrigger(function()
+    makeSettings()
     applyMinimapStyle()
     SnugUI.commitRegistry["applyMinimapScale"] = function()
         applyMinimapScale()
     end
-    makeSettings()
+    table.insert(SnugUI.commitRegistry, makeAnchorFrame)
+    table.insert(SnugUI.commitRegistry, ReanchorButtons)
     makeAnchorFrame()
     ReanchorButtons()
 end)

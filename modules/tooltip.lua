@@ -1,5 +1,6 @@
 local SnugUI = _G.SnugUI
-local moduleName = "blizz"
+
+local moduleName = "tooltip"
 
 local function anchorTooltip(tooltip)
     if not SnugUI.settings[moduleName].enable then return end
@@ -33,22 +34,20 @@ local function scaleTooltip()
 end
 
 local function makeSettings()
-    SnugUI.api.generateSettingsUI(moduleName, "Blizzard", {
-        title = "Blizzard UI Tweaks",
-        message = "These settings adjust the default behavior of Blizzard UI elements. They may not work with all addons, and may cause unexpected behavior in some cases. Use with caution.",
+    SnugUI.api.generateSettingsUI(moduleName, "Tooltip", {
+        title = "Tooltip Tweaks",
+        message = "These settings adjust the default behavior of tooltip UI elements. They may not work with all addons, and may cause unexpected behavior in some cases. Use with caution.",
     })
-    SnugUI.api.addSetting(moduleName, "enable", {
-        type = "checkbox",
+    SnugUI.api.addSetting(moduleName, "enable", "checkbox", {
         default = true,
         label = "Anchor tooltips to SnugUI anchors",
         layout = {
-            order = 100,
             col = 1,
+            row = 1,
         }
     })
-    SnugUI.api.addSetting(moduleName, "tooltipAnchor", {
-        type = "dropdown",
-        default = "Right Anchor",
+    SnugUI.api.addSetting(moduleName, "tooltipAnchor", "dropdown", {
+        default = "BOTTOMRIGHT",
         label = "Tooltip Anchor",
         options = {
             {value="TOPLEFT", text="Top of Left Anchor"},
@@ -57,13 +56,12 @@ local function makeSettings()
             {value="BOTTOMRIGHT", text="Bottom of Right Anchor"},
         },
         layout = {
-            order = 99,
-            col = 2,
+            col = 3,
+            row = 1,
             width = 140,
         }
     })
-    SnugUI.api.addSetting(moduleName, "scale", {
-        type = "slider",
+    SnugUI.api.addSetting(moduleName, "scale", "slider", {
         default = 1,
         label = "Tooltip Scale",
         min_label = "Min",
@@ -72,8 +70,8 @@ local function makeSettings()
         max = 2,
         step = 0.05,
         layout = {
-            order = 98,
-            col = 1,
+            col = 2,
+            row = 2,
             width = 140,
         }
     })
@@ -82,8 +80,8 @@ end
 
 
 SnugUI.loginTrigger(function()
+    makeSettings()
     scaleTooltip()
     table.insert(SnugUI.commitRegistry, scaleTooltip)
     hookTooltip()
-    makeSettings()
 end)

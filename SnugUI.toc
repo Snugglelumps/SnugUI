@@ -5,16 +5,16 @@
 ## Version: Ascension 1.0
 ## SavedVariables: SnugUISettings
 
-bootstrap\init.lua
+main.lua
 bootstrap\frames.lua
 bootstrap\settings.lua
 
-modules\minimap.lua
-modules\blizzard.lua
-modules\details.lua
-modules\chat.lua
-modules\tabwords.lua
-modules\qol.lua
 
-resources\profiles.lua
-main.lua
+modules\about.lua
+modules\anchors.lua
+modules\details.luaaa
+modules\chat.lua
+modules\minimap.lua
+modules\tooltip.lua
+modules\qol.lua
+modules\profiles.lua

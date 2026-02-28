@@ -5,9 +5,9 @@ local function GetAnchorTarget()
     local anchors = SnugUI.settings.anchors
     if not anchors then return nil end
 
-    if (anchors.leftAssignment == "Details!" and SnugUI.frames.leftAnchor) then
+    if (anchors.leftAssignment == "details" and SnugUI.frames.leftAnchor) then
         return SnugUI.frames.leftAnchor
-    elseif (anchors.rightAssignment == "Details!" and SnugUI.frames.rightAnchor) then
+    elseif (anchors.rightAssignment == "details" and SnugUI.frames.rightAnchor) then
         return SnugUI.frames.rightAnchor
     end
 

@@ -1,67 +1,7 @@
 local SnugUI = _G.SnugUI
 
----<===================================================================================================>---<<2.1 Anchors
----<==============================[Creates the right and left anchor frames. They are exposed globally via their names.]
-
-
-local function CreateRectangle(name, parent)
-    parent = parent or UIParent
-
-    local f = CreateFrame("Frame", name, parent)
-    f:SetFrameStrata("BACKGROUND")
-
-    f:SetBackdrop({
-        bgFile   = "Interface\\Buttons\\WHITE8x8",
-        edgeFile = "Interface\\Buttons\\WHITE8x8",
-        edgeSize = 1,
-        insets   = { left = 0, right = 0, top = 0, bottom = 0 },
-    })
-    f:SetBackdropColor(0, 0, 0, 0.25)
-    f:SetBackdropBorderColor(0, 0, 0, 1)
-
-    return f
-end
-
-local function createAnchors()
-    local w = SnugUI.settings.anchors.width
-    local h = SnugUI.settings.anchors.height
-
-    -- left
-    SnugUI.frames.leftAnchor = CreateRectangle("SnugUILeftAnchor", UIParent)
-    SnugUI.frames.leftAnchor:ClearAllPoints()
-    SnugUI.frames.leftAnchor:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 1, 1)
-    SnugUI.frames.leftAnchor:SetSize(w, h)
-    SnugUI.frames.leftAnchor:EnableMouse(true)
-
-    -- right
-    SnugUI.frames.rightAnchor = CreateRectangle("SnugUIRightAnchor", UIParent)
-    SnugUI.frames.rightAnchor:ClearAllPoints()
-    SnugUI.frames.rightAnchor:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", -1, 1)
-    SnugUI.frames.rightAnchor:SetSize(w, h)
-    SnugUI.frames.rightAnchor:EnableMouse(true)
-end
-
-
-local function updateAnchors()
-    -- grabs settings, can add defaults
-    local w = tonumber(SnugUI.settings.anchors.width)-- or 420
-    local h = tonumber(SnugUI.settings.anchors.height)-- or 200
-
-    -- Helper to update one anchor
-    local function resize(anchor, point, relPoint, x, y)
-        if not anchor then return end
-        anchor:ClearAllPoints()
-        anchor:SetPoint(point, UIParent, relPoint, x, y)
-        anchor:SetSize(w, h)
-    end
-
-    -- Apply to left & right
-    resize(SnugUI.frames.leftAnchor,  "BOTTOMLEFT",  "BOTTOMLEFT",  1,  1)
-    resize(SnugUI.frames.rightAnchor, "BOTTOMRIGHT", "BOTTOMRIGHT", -1,  1)
-end
-
----<=================================================================================>---<<2.2 Settings Frames and Title
----<======================================================[Creates main settings window, title, and  left/right panels.]
+---<============================================================================================>---<<============
+---<===Main Settings Frame===>---
 SnugUI.frames.BG = CreateFrame("Frame", "SnugUI Settings", UIParent, "BackdropTemplate")
 SnugUI.frames.BG:SetSize(690, 420)
 SnugUI.frames.BG:SetPoint("CENTER")
@@ -126,192 +66,8 @@ local label = titleFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 label:SetPoint("CENTER")
 label:SetText("SnugUI Settings")
 
----<=================================================================================>---<<2.3 Pre-declaration of Panels
-SnugUI.panels.about = CreateFrame("Frame", nil, SnugUI.frames.rightBG)
-SnugUI.panels.about:SetAllPoints()
-SnugUI.panels.about:Hide()
-
-SnugUI.panels.general = CreateFrame("Frame", nil, SnugUI.frames.rightBG)
-SnugUI.panels.general:SetAllPoints()
-SnugUI.panels.general:Hide()
-
-SnugUI.panels.chat = CreateFrame("Frame", nil, SnugUI.frames.rightBG)
-SnugUI.panels.chat:SetAllPoints()
-SnugUI.panels.chat:Hide()
-
-SnugUI.panels.profiles = CreateFrame("Frame", nil, SnugUI.frames.rightBG)
-SnugUI.panels.profiles:SetAllPoints()
-SnugUI.panels.profiles:Hide()
-
-SnugUI.panels.details = CreateFrame("Frame", nil, SnugUI.frames.rightBG)
-SnugUI.panels.details:SetAllPoints()
-SnugUI.panels.details:Hide()
-
-SnugUI.panels.prat = CreateFrame("Frame", nil, SnugUI.frames.rightBG)
-SnugUI.panels.prat:SetAllPoints()
-SnugUI.panels.prat:Hide()
-
-SnugUI.panels.SUF = CreateFrame("Frame", nil, SnugUI.frames.rightBG)
-SnugUI.panels.SUF:SetAllPoints()
-SnugUI.panels.SUF:Hide()
-
-SnugUI.panels.WA = CreateFrame("Frame", nil, SnugUI.frames.rightBG)
-SnugUI.panels.WA:SetAllPoints()
-SnugUI.panels.WA:Hide()
-
-SnugUI.panels.qol = CreateFrame("Frame", nil, SnugUI.frames.rightBG)
-SnugUI.panels.qol:SetAllPoints()
-SnugUI.panels.qol:Hide()
-
-SnugUI.panels.minimap = CreateFrame("Frame", nil, SnugUI.frames.rightBG)
-SnugUI.panels.minimap:SetAllPoints()
-SnugUI.panels.minimap:Hide()
-
----<===========================================================================================>---<<2.4 Sidebar Buttons
----<===========================================[Includes logic for highlight states and corresponding panel visibility.]
-local sidebarLabels = { "About", "General", "Minimap", "QOL", "Profiles" }
-local subLabels     = { "Details!", "Shadowed Unit Frames", "WeakAuras" }
-
-local sidebarButtons = {}
-local subButtons     = {}
-local subVisible     = false
-
--- Map of panel names to their frames
-local panelMap = {
-    About     = SnugUI.panels.about,
-    General   = SnugUI.panels.general,
-    Chat      = SnugUI.panels.chat,
-    QOL       = SnugUI.panels.qol,
-    Minimap   = SnugUI.panels.minimap,
-    Profiles  = SnugUI.panels.profiles,
-    ["Details!"] = SnugUI.panels.details,
-    --["Prat 3.0"] = SnugUI.panels.prat,
-    ["Shadowed Unit Frames"] = SnugUI.panels.SUF,
-    WeakAuras    = SnugUI.panels.WA,
-}
-
--- Utility to hide highlights on a set of buttons
-local function HideHighlights(buttons)
-    for _, btn in pairs(buttons) do
-        if btn.highlight then btn.highlight:Hide() end
-    end
-end
-
--- Clear all sidebar and sub-button highlights
-local function ClearSidebarHighlights()
-    HideHighlights(sidebarButtons)
-    HideHighlights(subButtons)
-end
-
--- Show only the selected panel
-local function ShowPanel(name)
-    for _, panel in pairs(panelMap) do
-        panel:Hide()
-    end
-    if panelMap[name] then
-        panelMap[name]:Show()
-    end
-end
-
--- Toggle visibility of sub-buttons under Profiles
-local function ToggleSubButtons()
-    subVisible = not subVisible
-    for _, btn in ipairs(subButtons) do
-        btn:SetShown(subVisible)
-    end
-    sidebarButtons["Profiles"].toggleText:SetText(subVisible and "−" or "+")
-end
-
--- Sidebar layout parameters
-local startY, spacing = -5, -28
-local yOffset = startY
-
--- Create main sidebar buttons
-for _, label in ipairs(sidebarLabels) do
-    local btn = CreateFrame("Button", nil, SnugUI.frames.leftBG)
-    btn:SetSize(180, 24)
-    btn:SetPoint("TOPLEFT", 10, yOffset)
-
-    -- Highlight wrapper and texture
-    local wrapper = CreateFrame("Frame", nil, btn)
-    wrapper:SetPoint("TOPLEFT", -4, 0)
-    wrapper:SetPoint("BOTTOMRIGHT", 4, 0)
-    --wrapper:SetClipsChildren(true)
-
-    local highlight = wrapper:CreateTexture(nil, "BACKGROUND")
-    highlight:SetPoint("TOPLEFT", -20, 0)
-    highlight:SetPoint("BOTTOMRIGHT", 20, 0)
-    highlight:SetTexture("interface/common/search")
-    highlight:SetTexCoord(0.001953125, 0.248046875, 0.6171875, 0.828125)
-    highlight:SetAlpha(0.7)
-    highlight:Hide()
-    btn.highlight = highlight
-
-    local text = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    text:SetPoint("LEFT", 4, 0)
-    text:SetText(label)
-    btn.text = text
-
-    -- Profiles toggle indicator
-    if label == "Profiles" then
-        local toggle = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        toggle:SetPoint("RIGHT", -4, 0)
-        toggle:SetText("+")
-        btn.toggleText = toggle
-
-        btn:SetScript("OnClick", function()
-            ClearSidebarHighlights()
-            btn.highlight:Show()
-            ToggleSubButtons()
-        end)
-    else
-        btn:SetScript("OnClick", function()
-            ClearSidebarHighlights()
-            btn.highlight:Show()
-            ShowPanel(label)
-        end)
-    end
-
-    btn:SetScript("OnEnter", function() text:SetTextColor(1, 1, 1) end)
-    btn:SetScript("OnLeave", function() text:SetTextColor(1, 0.82, 0) end)
-
-    sidebarButtons[label] = btn
-    yOffset = yOffset + spacing
-end
-
--- Create sub-buttons under 'Profiles'
-for _, label in ipairs(subLabels) do
-    local btn = CreateFrame("Button", nil, SnugUI.frames.leftBG)
-    btn:SetSize(160, 22)
-    btn:SetPoint("TOPLEFT", 20, yOffset)
-    btn:Hide()
-
-    local highlight = btn:CreateTexture(nil, "BACKGROUND")
-    highlight:SetAllPoints()
-    highlight:SetTexture("interface/garrison/garrisonmissionui1")
-    highlight:SetTexCoord(0.001953125, 0.783203125, 0.6513671875, 0.7001953125)
-    highlight:SetAlpha(0.8)
-    highlight:Hide()
-    btn.highlight = highlight
-
-    local text = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    text:SetPoint("LEFT", 8, 0)
-    text:SetText(label)
-    btn.text = text
-
-    btn:SetScript("OnClick", function()
-        ClearSidebarHighlights()
-        btn.highlight:Show()
-        ShowPanel(label)
-    end)
-
-    btn:SetScript("OnEnter", function() text:SetTextColor(1, 1, 1) end)
-    btn:SetScript("OnLeave", function() text:SetTextColor(1, 0.82, 0) end)
-
-    table.insert(subButtons, btn)
-    yOffset = yOffset + spacing
-end
-
+---<============================================================================================>---<<============
+---<===Buttons and Functionality===>---
 SnugUI.buttons.apply = CreateFrame("Button", nil, SnugUI.frames.BG, "UIPanelButtonTemplate")
 SnugUI.buttons.apply:SetSize(100, 24)
 SnugUI.buttons.apply:SetPoint("BOTTOMLEFT", 10, 10)
@@ -327,8 +83,43 @@ SnugUI.buttons.close:SetSize(100, 24)
 SnugUI.buttons.close:SetPoint("BOTTOMRIGHT", -10, 10)
 SnugUI.buttons.close:SetText("Close")
 
----<===================================================================================================>---<<2.5 Borders
--- Universal border piece creator
+SnugUI.buttons.apply:SetScript("OnClick", function()
+    for _, func in pairs(SnugUI.commitRegistry) do
+        if type(func) == "function" then
+            pcall(func)
+        end
+    end
+end)
+
+SnugUI.buttons.reload:SetScript("OnClick", function()
+    ReloadUI()
+end)
+
+SnugUI.buttons.close:SetScript("OnClick", function()
+    SnugUI.frames.BG:Hide()
+end)
+
+function initReloadUIRequest()
+    local reloadButton = SnugUI.buttons.reload
+    if not reloadButton then return end
+
+    if not reloadButton.reloadNote then
+        reloadButton.reloadNote = reloadButton:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        reloadButton.reloadNote:SetPoint("LEFT", reloadButton, "RIGHT", 10, 0)
+        reloadButton.reloadNote:SetText("|cffffcc00**Reload required|r")
+    end
+
+    reloadButton.reloadNote:Hide()
+end
+
+function SnugUI.functions.reloadUIRequest()
+    local reloadButton = SnugUI.buttons.reload
+    if reloadButton and reloadButton.reloadNote then
+        reloadButton.reloadNote:Show()
+    end
+end
+---<============================================================================================>---<<============
+---<===Borders and Corners===>---
 local function AddBorderPiece(config)
     local tex = config.parent:CreateTexture(nil, config.layer or "BORDER")
     tex:SetTexture(config.texture)
@@ -431,35 +222,12 @@ for _, cfg in pairs(cornerConfig) do
     cfg.parent = SnugUI.frames.BG
     AddCornerPiece(cfg)
 end
----<====================================================================================================>---<<2.6 Labels
-local l = SnugUI.panels.general:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-l:SetFont("Fonts\\FRIZQT__.TTF", 16, "")
-l:SetPoint("TOPLEFT", 16, -16)
-l:SetText("Anchor Settings")
-
---local l = SnugUI.panels.general:CreateFontString(nil, "OVERLAY", "GameFontNormal")
---l:SetFont("Fonts\\FRIZQT__.TTF", 16, "")
---l:SetPoint("TOP", 0, -116)
---l:SetText("Anchor Content")
-
-local l = SnugUI.panels.general:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-l:SetFont("Fonts\\FRIZQT__.TTF", 16, "")
-l:SetPoint("TOPLEFT", 16, -124)
-l:SetText("Styles")
-
-local divider = SnugUI.panels.general:CreateTexture(nil, "ARTWORK")
-divider:SetColorTexture(1, 1, 1, 0.2)
-divider:SetSize(SnugUI.panels.general:GetWidth() - 32, 2)
-divider:SetPoint("TOP", SnugUI.panels.general, "TOP", 0, -108)
-
-local divider = SnugUI.panels.minimap:CreateTexture(nil, "ARTWORK")
-divider:SetColorTexture(1, 1, 1, 0.2)
-divider:SetSize(SnugUI.panels.minimap:GetWidth() - 32, 2)
-divider:SetPoint("TOP", SnugUI.panels.minimap, "TOP", 0, -68)
 
 
----<===========================================================================================================>---<<AUX
+
+---<============================================================================================>---<<============
+---<===AUX===>---
 SnugUI.loginTrigger(function()
-    createAnchors()
+    initReloadUIRequest()
     table.insert(SnugUI.commitRegistry, updateAnchors)
 end)

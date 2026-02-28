@@ -1,8 +1,33 @@
 local SnugUI = _G.SnugUI
 if not SnugUI then return end
 
+local leftButtons = {}
 
-local leftOffset = -150
+local function LayoutLeftButtons()
+    local prev = nil
+
+    for _, button in ipairs(leftButtons) do
+        if button:IsShown() then
+            button:ClearAllPoints()
+
+            if prev then
+                button:SetPoint("TOPLEFT", prev, "BOTTOMLEFT", 0, -4)
+            else
+                button:SetPoint("TOPLEFT", SnugUI.frames.leftBG, "TOPLEFT", 10, -10)
+            end
+
+            prev = button
+        end
+    end
+end
+
+local function maybeReloadWarning(def)
+    if def and def.reloadWarning then
+        if SnugUI.functions and SnugUI.functions.reloadUIRequest then
+            SnugUI.functions.reloadUIRequest()
+        end
+    end
+end
 
 function SnugUI.api.generateSettingsUI(moduleName, buttonText, def, ddwidth)
     -- Create the settings namespace if it doesn't exist
@@ -12,36 +37,46 @@ function SnugUI.api.generateSettingsUI(moduleName, buttonText, def, ddwidth)
     end
     createSettingsNS(moduleName)
 
-    -- Create the panel for the module
-    local function generatePanel(moduleName, buttonText)
+    -- Show/hide panels + highlights by ID (main or sub ID)
+    local function showPanel(moduleName)
+        local panel = SnugUI.panels[moduleName]
+        local highlight = SnugUI.leftButton.Highlights[moduleName]
+        for _, p in pairs(SnugUI.panels) do
+            p:Hide()
+        end
+        for _, h in pairs(SnugUI.leftButton.Highlights) do
+            h:Hide()
+        end
+        if panel then panel:Show() end
+        if highlight then highlight:Show() end
+    end
+
+    -- Create the panel for the module (or sub)
+    local function generatePanel(moduleName, titleDef)
         SnugUI.panels[moduleName] = CreateFrame("Frame", nil, SnugUI.frames.rightBG)
         SnugUI.panels[moduleName]:SetAllPoints()
         SnugUI.panels[moduleName]:Hide()
 
         SnugUI.panels[moduleName].text = SnugUI.panels[moduleName]:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         SnugUI.panels[moduleName].text:SetPoint("CENTER")
-        print("Generated Panel:", SnugUI.panels[moduleName])
-    end
-    generatePanel(moduleName, buttonText)
 
-    local function generateTitleandMessage(moduleName, def)
-        def = def or {}
-
-        if def.title == nil then def.title = "" end
-        if def.message == nil then def.message = "" end
+        -- Title/message (using your existing function)
+        titleDef = titleDef or {}
+        if titleDef.title == nil then titleDef.title = "" end
+        if titleDef.message == nil then titleDef.message = "" end
 
         local panel = SnugUI.panels[moduleName]
         local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         title:SetPoint("TOP", 0, -10)
-        title:SetText(def.title)
+        title:SetText(titleDef.title)
 
         local message = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        message:SetPoint("TOP", 0, -40)  -- anchor left side to parent
+        message:SetPoint("TOP", 0, -40)
         message:SetWidth(panel:GetWidth() - 15)
         message:SetJustifyH("CENTER")
         message:SetJustifyV("TOP")
         message:SetWordWrap(true)
-        message:SetText(def.message)
+        message:SetText(titleDef.message)
 
         local line = panel:CreateTexture(nil, "ARTWORK")
         line:SetHeight(1)
@@ -51,21 +86,22 @@ function SnugUI.api.generateSettingsUI(moduleName, buttonText, def, ddwidth)
         line:SetVertexColor(1, 1, 1, 0.2)
 
         panel._settingsStartY = -(message:GetStringHeight() + 60)
-        -- print("for [" .. moduleName .. "] panel._settingsStartY =", panel._settingsStartY)
     end
-    generateTitleandMessage(moduleName, def)
 
-    -- Create the button for the module including show/hide and highlight logic
-    local function generateButton(moduleName, buttonText)
+    -- Create MAIN panel
+    def = def or {}
+    generatePanel(moduleName, def)
+
+    -- Create a button (main or sub). Returns the created button.
+    local function generateButton(moduleName, textLabel, opts)
+        opts = opts or {}
+
         local button = CreateFrame("Button", nil, SnugUI.frames.leftBG)
         button:SetSize(180, 24)
-        button:SetPoint("TOPLEFT", 10, leftOffset)
 
         local text = button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        text:SetPoint("LEFT", 5, 0)
-        text:SetText(buttonText)
-
-        leftOffset = leftOffset - 20
+        text:SetPoint("LEFT", (opts.indent or 5), 0)
+        text:SetText(textLabel)
 
         -- Highlight wrapper frame and texture
         local highlightFrame = CreateFrame("Frame", nil, button)
@@ -75,33 +111,111 @@ function SnugUI.api.generateSettingsUI(moduleName, buttonText, def, ddwidth)
         local tex = highlightFrame:CreateTexture(nil, "BACKGROUND")
         tex:SetPoint("TOPLEFT", -20, 0)
         tex:SetPoint("BOTTOMRIGHT", 20, 0)
-        tex:SetTexture("Interface\\Common\\Search") -- note slashes
+        tex:SetTexture("Interface\\Common\\Search")
         tex:SetTexCoord(0.001953125, 0.248046875, 0.6171875, 0.828125)
         tex:SetAlpha(0.7)
 
         highlightFrame:Hide()
         SnugUI.leftButton.Highlights[moduleName] = highlightFrame
 
+        table.insert(leftButtons, button)
 
-        local function showPanel(moduleName)
-            local panel = SnugUI.panels[moduleName]
-            local highlight = SnugUI.leftButton.Highlights[moduleName]
-            for _, p in pairs(SnugUI.panels) do
-                p:Hide()
-            end
-            for _, h in pairs(SnugUI.leftButton.Highlights) do
-                h:Hide()
-            end
-            if panel then panel:Show() end
-            if highlight then highlight:Show() end
+        if opts.startHidden then
+            button:Hide()
         end
 
+        -- default click: show that panel
         button:SetScript("OnClick", function()
             showPanel(moduleName)
+            LayoutLeftButtons()
+        end)
+
+        return button
+    end
+
+    -- MAIN button
+    local mainButton = generateButton(moduleName, buttonText)
+
+    -- SUB BUTTONS (simple list)
+    if def.subButtons and type(def.subButtons) == "table" then
+        mainButton._subButtons = mainButton._subButtons or {}
+
+        for i, sub in ipairs(def.subButtons) do
+            local subId = moduleName .. "::" .. sub.id
+
+            generatePanel(subId, { title = sub.title, message = sub.message })
+
+            -- create the sub-button (hidden, indented)
+            local subBtn = generateButton(subId, tostring(sub.title), {
+                startHidden = true,
+                indent = 18, -- you can tweak this; this is the "positioned differently" part
+            })
+
+            table.insert(mainButton._subButtons, subBtn)
+        end
+
+        -- Parent click: toggle expansion AND show parent panel
+        mainButton._expanded = false
+        mainButton:SetScript("OnClick", function()
+            mainButton._expanded = not mainButton._expanded
+
+            for _, b in ipairs(mainButton._subButtons) do
+                b:SetShown(mainButton._expanded)
+            end
+
+            showPanel(moduleName)
+            LayoutLeftButtons()
         end)
     end
-    generateButton(moduleName, buttonText)
+    LayoutLeftButtons()
+end
 
+local function makeProfileExport(moduleName, key, def, panel)
+    -- prevent double-build if renderSettings gets called again
+    if panel.__SnugUI_DetailsExportBuilt then return end
+    panel.__SnugUI_DetailsExportBuilt = true
+
+    local scrollFrame = CreateFrame("ScrollFrame", "SnugUIDetailsExportScroll", panel, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", 16, -68)
+    scrollFrame:SetPoint("BOTTOMRIGHT", -32, 16)
+
+    local bg = CreateFrame("Frame", nil, scrollFrame, "BackdropTemplate")
+    bg:SetPoint("TOPLEFT", -4, 4)
+    bg:SetPoint("BOTTOMRIGHT", 4, -4)
+    bg:SetBackdrop({
+        bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+        edgeFile = "Interface/DialogFrame/UI-DialogBox-Border",
+        tile = true,
+        tileSize = 16,
+        edgeSize = 12,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 }
+    })
+    bg:SetBackdropColor(0, 0, 0, 0.4)
+    bg:SetBackdropBorderColor(1, 1, 1, 0.6)
+
+    local exportBox = CreateFrame("EditBox", "SnugUIDetailsExportBox", scrollFrame)
+    exportBox:SetMultiLine(true)
+    exportBox:SetFontObject(GameFontHighlightSmall)
+    exportBox:SetWidth(400)
+    exportBox:SetAutoFocus(false)
+    exportBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    exportBox:SetScript("OnEditFocusGained", function(self) self:HighlightText() end)
+    exportBox:SetScript("OnTextChanged", function()
+        scrollFrame:UpdateScrollChildRect()
+    end)
+
+    scrollFrame:SetScrollChild(exportBox)
+
+    local function setDetailsExportBox()
+        exportBox:SetText(def.exportString or "No export data found.")
+        scrollFrame:UpdateScrollChildRect()
+    end
+
+    -- refresh when the panel is shown (so it’s always current)
+    panel:HookScript("OnShow", setDetailsExportBox)
+
+    -- optional: set once immediately (covers the case panel is already visible)
+    setDetailsExportBox()
 end
 
 
@@ -143,8 +257,7 @@ local function setSetting(module, key, value)
     SnugUI.settings[module][key] = value
 end
 
-local function layoutXY(moduleName, def)
-    local panel = SnugUI.panels[moduleName]
+local function layoutXY(moduleName, def, panel)
     def = def or {}
     local layout = def.layout or {}
 
@@ -173,30 +286,27 @@ local function layoutXY(moduleName, def)
 end
 
 
-local function makeCheckbox(moduleName, key, def)
-    local panel = SnugUI.panels[moduleName]
-    local x, y = layoutXY(moduleName, def)
-    local cb = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
-    cb:SetPoint("RIGHT", panel, "TOPLEFT", x, y)
+local function makeCheckbox(moduleName, key, def, panel)
+    local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    local checkbox = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
 
-    cb.label = cb:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    cb.label:SetPoint("LEFT", cb, "RIGHT", 6, 0)
-    cb.label:SetText(def.label or key)
-
+    local x, y = layoutXY(moduleName, def, panel)
     local v = SnugUI.settings[moduleName][key]
-    cb:SetChecked(v)
 
-    cb:SetScript("OnClick", function(self)
+    label:SetPoint("LEFT", panel, "TOPLEFT", x, y)
+    label:SetText(def.label or key)
+
+    checkbox:SetPoint("RIGHT", panel, "TOPLEFT", x, y)
+    checkbox:SetChecked(v)
+    checkbox:SetScript("OnClick", function(self)
         setSetting(moduleName, key, not not self:GetChecked())
-        -- print("Applied setting", moduleName, key, not not self:GetChecked())
+        maybeReloadWarning(def)
     end)
-    return cb
 end
 
-local function makeText(moduleName, key, def)
-    local panel = SnugUI.panels[moduleName]
+local function makeText(moduleName, key, def, panel)
     local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    local x, y = layoutXY(moduleName, def)
+    local x, y = layoutXY(moduleName, def, panel)
     label:SetText(def.label or key)
 
     local eb = CreateFrame("EditBox", nil, panel, "InputBoxTemplate")
@@ -207,47 +317,46 @@ local function makeText(moduleName, key, def)
 
     eb:SetScript("OnEnterPressed", function(self)
         setSetting(moduleName, key, self:GetText())
+        maybeReloadWarning(def)
         self:ClearFocus()
     end)
 end
 
-local function makeSlider(moduleName, key, def)
-    local panel = SnugUI.panels[moduleName]
-    local s = CreateFrame("Slider", nil, panel, "OptionsSliderTemplate")
-    s:SetScript("OnValueChanged", function(_, v)
-        setSetting(moduleName, key, v)
-        s.Text:SetText(key .. " " .. string.format("%.2f", v))
-    end)
+local function makeSlider(moduleName, key, def, panel)
+    local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    local slider = CreateFrame("Slider", nil, panel, "OptionsSliderTemplate")
 
-    local yOff = 25
-    local x, y = layoutXY(moduleName, def)
-    s:SetPoint("CENTER", panel, "TOPLEFT", x, y - yOff)
-    s:SetWidth(def.width or 140)
-    s:SetMinMaxValues(def.min or 0, def.max or 100)
-    s:SetValueStep(def.step or 1)
-    s.Low:SetText(def.min_label or "")
-    s.High:SetText(def.max_label or "")
-    -- s.Text:SetText([key] ... SnugUI.settings[module][key])
-
+    local x, y = layoutXY(moduleName, def, panel)
     local v = tonumber(getSetting(moduleName, key)) or def.default or def.min or 0
-    s:SetValue(v) -- will call your handler once; you can delete the explicit setSetting below if you want
-    s:SetScript("OnValueChanged", function(self, v)
-        setSetting(moduleName, key, v)
-        self.Text:SetText(key .. " " .. string.format("%.2f", v))
 
+    label:SetText("Scale: " .. string.format("%.2f", v))
+    label:SetPoint("CENTER", panel, "TOPLEFT", x, y + 10)
+
+    slider:SetPoint("CENTER", panel, "TOPLEFT", x, y - 15)
+    slider:SetWidth(def.width or 140)
+    slider:SetMinMaxValues(def.min or 0, def.max or 100)
+    slider:SetValueStep(def.step or 1)
+    slider.Low:SetText(def.min_label or "")
+    slider.High:SetText(def.max_label or "")
+
+    slider:SetScript("OnValueChanged", function(_, v)
+        setSetting(moduleName, key, v)
+        maybeReloadWarning(def)
+        label:SetText("Scale: " .. string.format("%.2f", v))
         if def.updateFunc then
-            def.updateFunc(moduleName, key, v, self)
+            def.updateFunc(moduleName, key, v, slider)
         end
     end)
+
+    slider:SetValue(v) -- must be after OnValueChanged to initialize label text
 end
 
-local function makeDropdown(moduleName, key, def)
-    local panel = SnugUI.panels[moduleName]
+local function makeDropdown(moduleName, key, def, panel)
     local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     local name = "SnugUI_DD_" .. moduleName .. "_" .. key
     local dd = CreateFrame("Frame", name, panel, "UIDropDownMenuTemplate")
 
-    local x, y = layoutXY(moduleName, def)
+    local x, y = layoutXY(moduleName, def, panel)
     local width = def.layout.width or 40
 
     label:SetText(def.label or key)
@@ -261,9 +370,9 @@ local function makeDropdown(moduleName, key, def)
 
     local function apply(value, text)
         setSetting(moduleName, key, value)
+        maybeReloadWarning(def)
         UIDropDownMenu_SetSelectedValue(dd, value)
         UIDropDownMenu_SetText(dd, text or "")
-        -- print("Applied setting", moduleName, key, value)
     end
 
     UIDropDownMenu_Initialize(dd, function(_, level)
@@ -289,11 +398,11 @@ local function makeDropdown(moduleName, key, def)
     return dd
 end
 
-local function makeRadio(moduleName, key, def)
-    local panel = SnugUI.panels[moduleName]
+local function makeRadio(moduleName, key, def, panel)
     local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    local x, y = layoutXY(moduleName, def)
-    label:SetPoint("TOPLEFT", x, y)
+    local x, y = layoutXY(moduleName, def, panel)
+
+    label:SetPoint("TOPLEFT", panel, "TOPLEFT", x , y + 5)
     label:SetText(def.label or key)
 
     local cur = getSetting(moduleName, key)
@@ -302,8 +411,8 @@ local function makeRadio(moduleName, key, def)
     --local y = -6
     for i, opt in ipairs(def.options or {}) do
         local rb = CreateFrame("CheckButton", nil, panel, "UIRadioButtonTemplate")
-        rb:SetPoint("RIGHT", panel, "TOPLEFT", x, y)
-        y = y - 18
+        rb:SetPoint("RIGHT", panel, "TOPLEFT", x -3, y - 20)
+        y = y - 18  
 
         rb.text = rb:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
         rb.text:SetPoint("LEFT", rb, "RIGHT", 6, 0)
@@ -314,7 +423,7 @@ local function makeRadio(moduleName, key, def)
         rb:SetScript("OnClick", function(self)
             -- set selected value
             setSetting(moduleName, key, opt.value)
-
+            maybeReloadWarning(def)
             -- uncheck siblings (we can just re-sync all radios by walking options)
             -- simplest: re-render check state for radios we created
             for j = 1, #def.options do
@@ -332,79 +441,121 @@ local function makeRadio(moduleName, key, def)
     end
 end
 
+local function makeEditBox(moduleName, key, def, panel)
+    local label = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    local eb = CreateFrame("EditBox", moduleName .. key, panel, "InputBoxTemplate")
+    local x, y = layoutXY(moduleName, def, panel)
+
+
+    label:SetPoint("LEFT", panel, "TOPLEFT", x, y)
+    label:SetText(def.label or key)
+
+    eb:SetAutoFocus(false)
+    eb:SetSize(def.layout.width or 220, 20)
+    eb:SetPoint("RIGHT", panel, "TOPLEFT", x - 6, y)
+
+    if def.maxLetters then eb:SetMaxLetters(def.maxLetters) end
+
+    local vt = def.valueType or "string"
+    if vt ~= "string" then eb:SetNumeric(true) end
+
+    local function sync()
+        local v = getSetting(moduleName, key)
+        if v == nil then v = def.default end
+        eb:SetText(v ~= nil and tostring(v) or "")
+    end
+    sync()
+
+    local function commit()
+        local t = eb:GetText() or ""
+        if vt == "string" then
+            if def.trim then t = t:match("^%s*(.-)%s*$") end
+            setSetting(moduleName, key, t)
+            maybeReloadWarning(def)
+            return
+        end
+
+        local n = tonumber(t)
+        if not n then return sync() end
+        if vt == "int" then n = math.floor(n) end
+        setSetting(moduleName, key, n)
+        maybeReloadWarning(def)
+    end
+
+    eb:SetScript("OnTextChanged", function(self) commit(); self:ClearFocus() end)
+    eb:SetScript("OnEscapePressed", function(self) sync(); self:ClearFocus() end)
+end
+
 local WIDGET = {
     checkbox = makeCheckbox,
     text = makeText,
     slider = makeSlider,
     dropdown = makeDropdown,
     radio = makeRadio,
+    editbox = makeEditBox,
+    profileExport = makeProfileExport,
 }
 
 function SnugUI.api.renderSettings(moduleName)
-    local panel = SnugUI.panels[moduleName]
-    if not panel then return end
-    panel._y = nil
-
     local defs = SnugUI.settingDefs[moduleName]
     if not defs then return end
 
-    -- build a temporary list of keys
-    local keys = {}
-    for k in pairs(defs) do
-        keys[#keys + 1] = k
-    end
+    local reset = {} -- panelId -> true
 
-    -- sort keys by def.layout.order (higher first)
-    table.sort(keys, function(a, b)
-        local da, db = defs[a], defs[b]
-        return ((da.layout and da.layout.order) or 0) >
-               ((db.layout and db.layout.order) or 0)
-    end)
-
-    -- render in sorted order
     for key, def in pairs(defs) do
         local f = WIDGET[def._type]
         if f then
-            f(moduleName, key, def)
+            local panelId = moduleName
+            if def.panel then
+                panelId = moduleName .. "::" .. def.panel
+            end
+
+            local panel = SnugUI.panels[panelId]
+            if panel then
+                if not reset[panelId] then
+                    panel._y = nil
+                    reset[panelId] = true
+                end
+                f(moduleName, key, def, panel)
+            end
         end
     end
 end
 
-local function testframe()
-    local panel = SnugUI.panels.minimap
-    print("panel:", panel)
-    print("panel shown/visible:", panel:IsShown(), panel:IsVisible(), "alpha:", panel:GetEffectiveAlpha())
+-- local function testframe()
+--     local panel = SnugUI.panels.minimap
 
-    local x = {
-        472 * .2,
-        472 * .5,
-        472 * .8,
-    }
-    local y = 0
-    for _, i in ipairs(x) do
-        local f = CreateFrame("Frame", nil, panel)
-        f:SetSize(2, 400)
-        f:SetPoint("TOPLEFT", panel, "TOPLEFT", i, y)
 
-        f:SetFrameStrata("HIGH")
-        f:SetFrameLevel(100)
+--     local x = {
+--         472 * .25,
+--         472 * .5,
+--         472 * .75,
+--     }
+--     local y = 0
+--     for _, i in ipairs(x) do
+--         local f = CreateFrame("Frame", nil, panel)
+--         f:SetSize(2, 400)
+--         f:SetPoint("TOPLEFT", panel, "TOPLEFT", i, y)
 
-        local tex = f:CreateTexture(nil, "OVERLAY")
-        tex:SetAllPoints()
-        tex:SetColorTexture(1, 0, 0, 1)
-    end
-end
+--         f:SetFrameStrata("HIGH")
+--         f:SetFrameLevel(100)
 
-local f = CreateFrame("Frame")
-f:RegisterEvent("PLAYER_LOGIN")
+--         local tex = f:CreateTexture(nil, "OVERLAY")
+--         tex:SetAllPoints()
+--         tex:SetColorTexture(1, 0, 0, 1)
+--     end
+-- end
 
-f:SetScript("OnEvent", function()
-    local t = 0
-    f:SetScript("OnUpdate", function(self, e)
-        t = t + e
-        if t >= 1 then
-            self:SetScript("OnUpdate", nil)
-            testframe()
-        end
-    end)
-end)
+-- local f = CreateFrame("Frame")
+-- f:RegisterEvent("PLAYER_LOGIN")
+
+-- f:SetScript("OnEvent", function()
+--     local t = 0
+--     f:SetScript("OnUpdate", function(self, e)
+--         t = t + e
+--         if t >= 1 then
+--             self:SetScript("OnUpdate", nil)
+--             testframe()
+--         end
+--     end)
+-- end)

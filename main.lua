@@ -68,7 +68,7 @@ end)
 local f = CreateFrame("Frame")  -- This ensures our saved variables are loaded before we try to access them
 f:RegisterEvent("ADDON_LOADED") -- ADDON_LOADED is the earliest event from the client that guarentees our SavedVariables are available
 f:SetScript("OnEvent", function(_, _, name)
-    if name ~= "SnugUI" then return end
+    if name ~= "SnugUI-ascension" then return end
 
     SnugUISettings = SnugUISettings or {}
     SnugUI.settings = SnugUISettings
